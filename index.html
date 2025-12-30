@@ -17,7 +17,7 @@ canvas { display: block; margin-top: 20px; border: 1px solid #000; }
 
 <label>Prompt (for logging):</label>
 <input type="text" id="prompt" style="width:100%" placeholder="Optional prompt for log">
-<button id="generate">Generate & Upload AI TGA Image</button>
+<button id="generate">Generate & Upload AI Image</button>
 
 <h2>Paste TGA Text to View Image:</h2>
 <textarea id="tgaText"></textarea>
@@ -30,7 +30,7 @@ canvas { display: block; margin-top: 20px; border: 1px solid #000; }
 
 <script>
 const CORS_PROXY = 'https://corsproxy.io/?';
-const WEBHOOK_URL = 'https://discord.com/api/webhooks/1455672899192225989/9kdKQBwgdrCBlnxg4TLe57jftACcS7vaEM6AELseBrIPgmxTwVtZxiu5Qu_eeS-ex1Z1'; // remove <>
+const WEBHOOK_URL = '<YOUR_DISCORD_WEBHOOK_URL>'; // remove <>
 
 // --- Chatbox Logging ---
 function log(msg){
@@ -41,8 +41,8 @@ function log(msg){
   box.scrollTop = box.scrollHeight;
 }
 
-// --- Generate Random Canvas Image ---
-function generateRandomCanvas(canvas, width=256, height=256){
+// --- Generate AI Canvas Image ---
+function generateAICanvas(canvas, width=128, height=128){
   canvas.width = width;
   canvas.height = height;
   const ctx = canvas.getContext('2d');
@@ -95,7 +95,7 @@ function canvasToTGA(canvas){
   }
 
   let b64 = btoa(binary);
-  // wrap every 76 characters
+  // wrap every 76 characters for easier copy/paste
   return b64.replace(/.{76}/g, '$&\n');
 }
 
@@ -104,9 +104,9 @@ document.getElementById('generate').onclick = async () => {
   const prompt = document.getElementById('prompt').value || "(no prompt)";
   const canvas = document.getElementById('canvas');
 
-  log("Generating random image...");
-  generateRandomCanvas(canvas, 256, 256);
-  log("Random image generated.");
+  log("Generating AI image...");
+  generateAICanvas(canvas, 128, 128);
+  log("AI image generated.");
 
   log("Converting to TGA...");
   const tgaText = canvasToTGA(canvas);
@@ -114,7 +114,7 @@ document.getElementById('generate').onclick = async () => {
 
   const blob = new Blob([tgaText], {type:'text/plain'});
   const form = new FormData();
-  form.append('file', blob, 'random_image.txt');
+  form.append('file', blob, 'AI_image.txt');
 
   log("Uploading TGA to Discord...");
   try{
