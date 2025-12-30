@@ -13,10 +13,12 @@ canvas { display: block; margin-top: 20px; border: 1px solid #000; }
 </head>
 <body>
 
-<h1>AI → Canvas → TGA → Discord</h1>
-<label>Prompt:</label>
-<input type="text" id="prompt" style="width:100%" placeholder="Enter your prompt">
-<button id="generate">Generate & Upload</button>
+<h1>Image → Canvas → TGA → Discord</h1>
+
+<label>Prompt (for log purposes):</label>
+<input type="text" id="prompt" style="width:100%" placeholder="e.g. spacex rocket">
+
+<button id="generate">Load & Upload Placeholder</button>
 
 <h2>Paste TGA Text to View Image:</h2>
 <textarea id="tgaText"></textarea>
@@ -28,10 +30,11 @@ canvas { display: block; margin-top: 20px; border: 1px solid #000; }
 <div id="chatbox"></div>
 
 <script>
-const CORS_PROXY = 'https://corsproxy.io/?';
-const WEBHOOK_URL = 'https://discord.com/api/webhooks/1455672899192225989/9kdKQBwgdrCBlnxg4TLe57jftACcS7vaEM6AELseBrIPgmxTwVtZxiu5Qu_eeS-ex1Z1'; // remove <>
+// === CONFIG ===
+const CORS_PROXY = 'https://corsproxy.io/?'; 
+const WEBHOOK_URL = '<YOUR_DISCORD_WEBHOOK_URL>'; // remove <>
 
-// === Chatbox logging ===
+// === Chatbox Logging ===
 function log(msg) {
   const box = document.getElementById('chatbox');
   const div = document.createElement('div');
@@ -44,7 +47,8 @@ function log(msg) {
 function canvasToTGA(canvas) {
   const ctx = canvas.getContext('2d');
   const w = canvas.width, h = canvas.height;
-  const pixels = ctx.getImageData(0,0,w,h).data;
+  const pixels = ctx.getImageData(0, 0, w, h).data;
+
   const header = new Uint8Array(18);
   header[2] = 2; // uncompressed true-color
   header[12] = w & 0xFF;
@@ -54,109 +58,116 @@ function canvasToTGA(canvas) {
   header[16] = 24;
 
   const tga = new Uint8Array(18 + w*h*3);
-  tga.set(header,0);
-  let p=18;
-  for(let y=h-1;y>=0;y--){
-    for(let x=0;x<w;x++){
-      const i=(y*w+x)*4;
-      tga[p++]=pixels[i+2];
-      tga[p++]=pixels[i+1];
-      tga[p++]=pixels[i];
+  tga.set(header, 0);
+
+  let p = 18;
+  for (let y=h-1; y>=0; y--) {
+    for (let x=0; x<w; x++) {
+      const i = (y*w + x)*4;
+      tga[p++] = pixels[i+2];
+      tga[p++] = pixels[i+1];
+      tga[p++] = pixels[i];
     }
   }
   return btoa(String.fromCharCode(...tga));
 }
 
-// === Generate & Upload TGA ===
-document.getElementById('generate').onclick = async () => {
-  const prompt = document.getElementById('prompt').value.trim();
-  if(!prompt) return alert("Enter a prompt!");
-  const canvas = document.getElementById('canvas');
-  const ctx = canvas.getContext('2d');
+// === Load Placeholder Image into Canvas ===
+async function loadPlaceholderImage(url, canvas) {
+  log("Fetching placeholder image...");
 
   try {
-    log("Generating AI image...");
-
-    // --- GPT Image API call (replace /api/generate with your endpoint) ---
-    const res = await fetch('/api/generate', {
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({prompt})
-    });
-    const data = await res.json();
-    if(!data.base64) throw new Error("No image returned from API");
-    log("AI image received.");
-
-    // Draw AI image onto canvas
+    const response = await fetch(CORS_PROXY + url);
+    const blob = await response.blob();
     const img = new Image();
-    img.src = 'data:image/png;base64,' + data.base64;
-    img.onload = async () => {
-      canvas.width = img.width;
-      canvas.height = img.height;
-      ctx.drawImage(img,0,0);
-      log("Image drawn on canvas.");
+    img.src = URL.createObjectURL(blob);
 
-      // Convert to TGA
-      log("Converting to TGA...");
-      const tgaText = canvasToTGA(canvas);
-      log("Conversion complete.");
+    await new Promise((resolve, reject) => {
+      img.onload = resolve;
+      img.onerror = reject;
+    });
 
-      const blob = new Blob([tgaText], {type:'text/plain'});
-      const form = new FormData();
-      form.append('file', blob, 'screenshot.txt');
+    canvas.width = img.width;
+    canvas.height = img.height;
+    canvas.getContext('2d').drawImage(img, 0, 0);
+    log("Image loaded to canvas.");
+    return true;
+  } catch (err) {
+    log("Failed to load image: " + err.message);
+    return false;
+  }
+}
 
-      // Upload to Discord via CORS proxy
-      try {
-        log("Uploading TGA to Discord...");
-        await fetch(CORS_PROXY + WEBHOOK_URL, {method:'POST', body:form});
-        log("Upload successful!");
-      } catch(err) {
-        log("Upload failed, sending error message to Discord...");
-        const errForm = new FormData();
-        errForm.append('content', `Failed to send TGA. Prompt: "${prompt}"\nError: ${err.message}`);
-        await fetch(CORS_PROXY + WEBHOOK_URL, {method:'POST', body:errForm});
-        log("Error message sent.");
-      }
-    };
+// === Generate & Upload TGA ===
+document.getElementById('generate').onclick = async () => {
+  const prompt = document.getElementById('prompt').value || "(no prompt)";
+  const canvas = document.getElementById('canvas');
 
+  // YOUR IMAGE URL
+  const placeholderURL = "https://tse2.mm.bing.net/th/id/OIP.mH3ON19bzodDTup5AESiCgHaEK?rs=1&pid=ImgDetMain&o=7";
+
+  // Load the placeholder
+  const ok = await loadPlaceholderImage(placeholderURL, canvas);
+  if (!ok) {
+    const errorForm = new FormData();
+    errorForm.append('content', `Failed to fetch placeholder image. Prompt: "${prompt}"`);
+    await fetch(CORS_PROXY + WEBHOOK_URL, { method:'POST', body:errorForm });
+    return;
+  }
+
+  log("Converting to TGA...");
+  const tgaText = canvasToTGA(canvas);
+  log("Conversion complete.");
+
+  const blob = new Blob([tgaText], { type:'text/plain' });
+  const form = new FormData();
+  form.append('file', blob, 'screenshot.txt');
+
+  log("Uploading TGA to Discord...");
+  try {
+    await fetch(CORS_PROXY + WEBHOOK_URL, { method:'POST', body: form });
+    log("Upload successful!");
   } catch(err) {
-    log("Error generating AI image, sending error message to Discord...");
+    log("Upload failed, sending fallback message to Discord...");
     const errForm = new FormData();
-    errForm.append('content', `Image generation failed. Prompt: "${prompt}"\nError: ${err.message}`);
-    await fetch(CORS_PROXY + WEBHOOK_URL, {method:'POST', body:errForm});
-    log("Error message sent.");
+    errForm.append('content', `Upload failed. Prompt: "${prompt}"\nError: ${err.message}`);
+    await fetch(CORS_PROXY + WEBHOOK_URL, { method:'POST', body: errForm });
+    log("Fallback sent.");
   }
 };
 
 // === Paste & View ===
 document.getElementById('view').onclick = () => {
   const tgaText = document.getElementById('tgaText').value.trim();
-  if(!tgaText) return;
+  if (!tgaText) return;
 
   const binary = atob(tgaText);
   const tga = new Uint8Array(binary.length);
-  for(let i=0;i<binary.length;i++) tga[i]=binary.charCodeAt(i);
+  for (let i=0; i<binary.length; i++) tga[i] = binary.charCodeAt(i);
 
-  const w = tga[12]+(tga[13]<<8), h = tga[14]+(tga[15]<<8);
+  const w = tga[12] + (tga[13]<<8);
+  const h = tga[14] + (tga[15]<<8);
   const canvas = document.getElementById('canvas');
-  canvas.width=w; canvas.height=h;
+  canvas.width = w;
+  canvas.height = h;
   const ctx = canvas.getContext('2d');
-  const imgData = ctx.createImageData(w,h);
+  const imgData = ctx.createImageData(w, h);
 
-  let p=18;
-  for(let y=h-1;y>=0;y--){
-    for(let x=0;x<w;x++){
+  let p = 18;
+  for (let y=h-1; y>=0; y--) {
+    for (let x=0; x<w; x++) {
       const i=(y*w+x)*4;
-      imgData.data[i]=tga[p+2];
-      imgData.data[i+1]=tga[p+1];
-      imgData.data[i+2]=tga[p];
-      imgData.data[i+3]=255;
-      p+=3;
+      imgData.data[i]   = tga[p+2];
+      imgData.data[i+1] = tga[p+1];
+      imgData.data[i+2] = tga[p];
+      imgData.data[i+3] = 255;
+      p += 3;
     }
   }
-  ctx.putImageData(imgData,0,0);
+  ctx.putImageData(imgData, 0, 0);
   log("TGA loaded from pasted text.");
 };
+
 </script>
 
 </body>
