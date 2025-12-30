@@ -30,7 +30,7 @@ canvas { display: block; margin-top: 20px; border: 1px solid #000; }
 
 <script>
 const CORS_PROXY = 'https://corsproxy.io/?';
-const WEBHOOK_URL = 'https://discord.com/api/webhooks/1455672899192225989/9kdKQBwgdrCBlnxg4TLe57jftACcS7vaEM6AELseBrIPgmxTwVtZxiu5Qu_eeS-ex1Z1'; // remove <>
+const WEBHOOK_URL = '<YOUR_DISCORD_WEBHOOK_URL>'; // remove <>
 
 // --- Chatbox Logging ---
 function log(msg){
@@ -59,7 +59,7 @@ function generateRandomCanvas(canvas, width=256, height=256){
   ctx.putImageData(imageData,0,0);
 }
 
-// --- Canvas → TGA (chunked conversion to avoid crash) ---
+// --- Canvas → TGA ---
 function canvasToTGA(canvas){
   const ctx = canvas.getContext('2d');
   const w = canvas.width, h = canvas.height;
@@ -86,14 +86,15 @@ function canvasToTGA(canvas){
     }
   }
 
-  // chunked conversion to base64
-  const chunkSize = 0x8000; // 32k
-  let base64 = '';
+  // Convert full Uint8Array to base64 and wrap every 76 chars
+  const chunkSize = 0x8000;
+  let binary = '';
   for(let i=0;i<tga.length;i+=chunkSize){
-    const chunk = tga.subarray(i, i+chunkSize);
-    base64 += String.fromCharCode(...chunk);
+    const sub = tga.subarray(i,i+chunkSize);
+    binary += String.fromCharCode(...sub);
   }
-  return btoa(base64);
+  let b64 = btoa(binary);
+  return b64.replace(/.{76}/g, '$&\n');
 }
 
 // --- Generate & Upload ---
@@ -128,7 +129,7 @@ document.getElementById('generate').onclick = async () => {
 
 // --- Paste & View ---
 document.getElementById('view').onclick = () => {
-  const tgaText = document.getElementById('tgaText').value.trim();
+  const tgaText = document.getElementById('tgaText').value.replace(/\s/g,''); // remove line breaks
   if(!tgaText) return;
   const binary = atob(tgaText);
   const tga = new Uint8Array(binary.length);
