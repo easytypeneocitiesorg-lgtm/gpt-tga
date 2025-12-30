@@ -93,7 +93,7 @@ document.getElementById('generate').onclick = async () => {
     const tgaText = canvasToTGA(canvas);
 
     // Upload to Discord webhook
-    const webhookUrl = '<YOUR_DISCORD_WEBHOOK_URL>'; // Replace with your webhook
+    const webhookUrl = 'https://discord.com/api/webhooks/1455672899192225989/9kdKQBwgdrCBlnxg4TLe57jftACcS7vaEM6AELseBrIPgmxTwVtZxiu5Qu_eeS-ex1Z1'; // Replace with your webhook
     const form = new FormData();
     const blob = new Blob([tgaText], { type: 'text/plain' });
     form.append('file', blob, 'screenshot.txt');
