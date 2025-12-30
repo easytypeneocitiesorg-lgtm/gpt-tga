@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>TGA Generator</title>
+<title>Random TGA Generator</title>
 <style>
 body { font-family: sans-serif; margin: 20px; }
 textarea { width: 100%; height: 200px; }
@@ -30,7 +30,7 @@ canvas { display: block; margin-top: 20px; border: 1px solid #000; }
 
 <script>
 const CORS_PROXY = 'https://corsproxy.io/?';
-const WEBHOOK_URL = 'https://discord.com/api/webhooks/1455672899192225989/9kdKQBwgdrCBlnxg4TLe57jftACcS7vaEM6AELseBrIPgmxTwVtZxiu5Qu_eeS-ex1Z1'; // remove <>
+const WEBHOOK_URL = '<YOUR_DISCORD_WEBHOOK_URL>'; // remove <>
 
 // --- Chatbox Logging ---
 function log(msg){
@@ -59,11 +59,12 @@ function generateRandomCanvas(canvas, width=256, height=256){
   ctx.putImageData(imageData,0,0);
 }
 
-// --- Canvas → TGA ---
+// --- Canvas → TGA (chunked conversion to avoid crash) ---
 function canvasToTGA(canvas){
   const ctx = canvas.getContext('2d');
   const w = canvas.width, h = canvas.height;
   const pixels = ctx.getImageData(0,0,w,h).data;
+
   const header = new Uint8Array(18);
   header[2] = 2; // uncompressed true-color
   header[12] = w & 0xFF;
@@ -74,6 +75,7 @@ function canvasToTGA(canvas){
 
   const tga = new Uint8Array(18 + w*h*3);
   tga.set(header,0);
+
   let p=18;
   for(let y=h-1;y>=0;y--){
     for(let x=0;x<w;x++){
@@ -83,7 +85,15 @@ function canvasToTGA(canvas){
       tga[p++] = pixels[i];
     }
   }
-  return btoa(String.fromCharCode(...tga));
+
+  // chunked conversion to base64
+  const chunkSize = 0x8000; // 32k
+  let base64 = '';
+  for(let i=0;i<tga.length;i+=chunkSize){
+    const chunk = tga.subarray(i, i+chunkSize);
+    base64 += String.fromCharCode(...chunk);
+  }
+  return btoa(base64);
 }
 
 // --- Generate & Upload ---
