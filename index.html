@@ -166,8 +166,21 @@ function copyRaw() {
 
 function openRaw() {
   const data = document.getElementById("raw").value;
-  const url = "data:text/plain;charset=utf-8," + encodeURIComponent(data);
-  window.open(url, "_blank");
+
+  const blob = new Blob([data], { type: "text/plain" });
+  const url = URL.createObjectURL(blob);
+
+  const a = document.createElement("a");
+  a.href = url;
+  a.target = "_blank";
+  a.rel = "noopener";
+
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+
+  // optional cleanup later
+  setTimeout(() => URL.revokeObjectURL(url), 60000);
 }
 </script>
 
