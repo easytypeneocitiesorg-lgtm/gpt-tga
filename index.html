@@ -57,6 +57,7 @@
     <div style="margin-bottom:6px;">
       raw .tga data
       <button onclick="copyRaw()" style="margin-left:10px;padding:4px 8px;">copy</button>
+      <button onclick="openRaw()" style="margin-left:6px;padding:4px 8px;">open data in new tab</button>
     </div>
     <textarea id="raw" readonly></textarea>
   </div>
@@ -161,6 +162,14 @@ function copyRaw() {
   navigator.clipboard.writeText(
     document.getElementById("raw").value
   );
+}
+
+function openRaw() {
+  const data = document.getElementById("raw").value;
+  const win = window.open();
+  win.document.open("text/plain");
+  win.document.write(data);
+  win.document.close();
 }
 </script>
 
