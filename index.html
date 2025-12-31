@@ -47,18 +47,33 @@
 <h1>untrained image generator</h1>
 <p>no model. no training. just vibes.</p>
 
-<input id="prompt" placeholder="type anything" style="width:100%;margin-bottom:10px;">
+<input
+  id="prompt"
+  placeholder="type anything"
+  style="width:100%;margin-bottom:10px;"
+>
+
 <button onclick="generate()">generate</button>
 
 <div class="row">
-  <canvas id="canvas" width="512" height="512" style="border:1px solid #222;"></canvas>
+  <canvas
+    id="canvas"
+    width="512"
+    height="512"
+    style="border:1px solid #222;"
+  ></canvas>
 
   <div style="flex:1;">
     <div style="margin-bottom:6px;">
       raw .tga data
-      <button onclick="copyRaw()" style="margin-left:10px;padding:4px 8px;">copy</button>
-      <button onclick="openRaw()" style="margin-left:6px;padding:4px 8px;">open data in new tab</button>
+      <button onclick="copyRaw()" style="margin-left:10px;padding:4px 8px;">
+        copy
+      </button>
+      <button onclick="openRaw()" style="margin-left:6px;padding:4px 8px;">
+        open data in new tab
+      </button>
     </div>
+
     <textarea id="raw" readonly></textarea>
   </div>
 </div>
@@ -137,7 +152,8 @@ function generate() {
   for (let i = 0; i < 400; i++) {
     ctx.beginPath();
     ctx.arc(rand() * w, rand() * h, rand() * 120, 0, Math.PI * 2);
-    ctx.fillStyle = `hsla(${rand() * 360},${40 + rand() * 60}%,${30 + rand() * 40}%,0.08)`;
+    ctx.fillStyle =
+      `hsla(${rand() * 360},${40 + rand() * 60}%,${30 + rand() * 40}%,0.08)`;
     ctx.fill();
   }
 
@@ -149,7 +165,8 @@ function generate() {
       rand() * w, rand() * h,
       rand() * w, rand() * h
     );
-    ctx.strokeStyle = `hsla(${rand() * 360},80%,60%,0.15)`;
+    ctx.strokeStyle =
+      `hsla(${rand() * 360},80%,60%,0.15)`;
     ctx.lineWidth = rand() * 2;
     ctx.stroke();
   }
@@ -166,21 +183,8 @@ function copyRaw() {
 
 function openRaw() {
   const data = document.getElementById("raw").value;
-
-  const blob = new Blob([data], { type: "text/plain" });
-  const url = URL.createObjectURL(blob);
-
-  const a = document.createElement("a");
-  a.href = url;
-  a.target = "_blank";
-  a.rel = "noopener";
-
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-
-  // optional cleanup later
-  setTimeout(() => URL.revokeObjectURL(url), 60000);
+  localStorage.setItem("tga_raw_data", data);
+  window.open("view.html", "_blank");
 }
 </script>
 
