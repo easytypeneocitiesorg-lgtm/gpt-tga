@@ -166,10 +166,8 @@ function copyRaw() {
 
 function openRaw() {
   const data = document.getElementById("raw").value;
-  const win = window.open();
-  win.document.open("text/plain");
-  win.document.write(data);
-  win.document.close();
+  const url = "data:text/plain;charset=utf-8," + encodeURIComponent(data);
+  window.open(url, "_blank");
 }
 </script>
 
